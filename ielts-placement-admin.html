@@ -7,7 +7,6 @@
   <style>
     :root{
       --bg:#0f2a22;
-      --card:#12352b;
       --text:#e8fff5;
       --muted:rgba(232,255,245,.72);
       --line:rgba(232,255,245,.12);
@@ -15,7 +14,6 @@
       --btn2:#0ea56f;
       --warn:#ffb020;
       --good:#6ee7b7;
-      --bad:#ff6b6b;
     }
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:radial-gradient(900px 600px at 50% 0%, #153b30 0%, var(--bg) 55%);color:var(--text);}
     .wrap{max-width:1100px;margin:0 auto;padding:18px;}
@@ -71,7 +69,6 @@
     .badge.CLOSED{border-color:rgba(255,255,255,.18);color:rgba(232,255,245,.6);background:rgba(255,255,255,.06)}
     .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media(max-width:900px){.split{grid-template-columns:1fr}}
-    .muted{color:var(--muted)}
     .hide{display:none}
     .kvs{display:grid;grid-template-columns:160px 1fr;gap:8px;font-size:13px}
     .kvs div{padding:6px 0;border-bottom:1px dashed rgba(232,255,245,.10)}
@@ -140,7 +137,7 @@
                 </select>
               </div>
               <div>
-                <label>Search (phone / name / result id)</label>
+                <label>Search (phone / name / uuid)</label>
                 <input id="fSearch" placeholder="01... / Joy / uuid..." />
               </div>
               <div>
@@ -153,16 +150,16 @@
             </div>
             <div class="row" style="margin-top:12px">
               <button id="refreshBtn" class="btn" type="button">Refresh</button>
-              <span class="note">Tip: focus NEW + EXAM-KNOCKING first for fastest closes.</span>
+              <span class="note">Prioritize NEW + EXAM-KNOCKING first.</span>
             </div>
           </div>
           <div>
             <h2>Quick Stats (loaded)</h2>
             <div class="kvs">
-              <div class="muted">Total</div><div id="stTotal">—</div>
-              <div class="muted">NEW</div><div id="stNew">—</div>
-              <div class="muted">EXAM-KNOCKING</div><div id="stExam">—</div>
-              <div class="muted">FOUNDATION</div><div id="stFound">—</div>
+              <div class="mono">Total</div><div id="stTotal">—</div>
+              <div class="mono">NEW</div><div id="stNew">—</div>
+              <div class="mono">EXAM-KNOCKING</div><div id="stExam">—</div>
+              <div class="mono">FOUNDATION</div><div id="stFound">—</div>
             </div>
           </div>
         </div>
@@ -171,7 +168,7 @@
       <div class="grid">
         <div class="card">
           <h2>List</h2>
-          <table class="table" id="listTbl">
+          <table class="table">
             <thead>
               <tr>
                 <th>When</th>
@@ -194,17 +191,17 @@
 
           <div id="details" class="hide">
             <div class="kvs">
-              <div class="muted">Result ID</div><div class="mono" id="dId">—</div>
-              <div class="muted">Name</div><div id="dName">—</div>
-              <div class="muted">Phone</div><div id="dPhone">—</div>
-              <div class="muted">Email</div><div id="dEmail">—</div>
-              <div class="muted">City</div><div id="dCity">—</div>
-              <div class="muted">Stage</div><div id="dStage">—</div>
-              <div class="muted">Recommended</div><div id="dPath">—</div>
-              <div class="muted">Target / Timeline</div><div id="dTT">—</div>
-              <div class="muted">Grammar</div><div id="dGrammar">—</div>
-              <div class="muted">Speaking</div><div id="dSpeak">—</div>
-              <div class="muted">Translate?</div><div id="dTrans">—</div>
+              <div class="mono">Result ID</div><div class="mono" id="dId">—</div>
+              <div class="mono">Name</div><div id="dName">—</div>
+              <div class="mono">Phone</div><div id="dPhone">—</div>
+              <div class="mono">Email</div><div id="dEmail">—</div>
+              <div class="mono">City</div><div id="dCity">—</div>
+              <div class="mono">Stage</div><div id="dStage">—</div>
+              <div class="mono">Recommended</div><div id="dPath">—</div>
+              <div class="mono">Target / Timeline</div><div id="dTT">—</div>
+              <div class="mono">Grammar</div><div id="dGrammar">—</div>
+              <div class="mono">Speaking</div><div id="dSpeak">—</div>
+              <div class="mono">Translate?</div><div id="dTrans">—</div>
             </div>
 
             <label style="margin-top:14px">Writing</label>
@@ -232,10 +229,10 @@
 
             <div class="row" style="margin-top:12px">
               <button id="saveBtn" class="btn" type="button">Save Update</button>
-              <button id="copyMsgBtn" class="btnGhost" type="button">Copy Follow-up Message</button>
+              <button id="copyMsgBtn" class="btnGhost" type="button">Copy Follow-up</button>
+              <button id="waFollowBtn" class="btnGhost" type="button">Open WhatsApp</button>
               <span id="saveMsg" class="note"></span>
             </div>
-
           </div>
         </div>
       </div>
@@ -243,14 +240,20 @@
 
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- ✅ Supabase UMD build (works with window.supabase) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
   <script>
     // ============================
-    // CONFIG (REPLACE THESE)
+    // CONFIG (REPLACE THESE 2)
     // ============================
-    const SUPABASE_URL = "https://smkvvaasvhfrljdyklcs.supabase.co";
+    const SUPABASE_URL = "https://smkvvaasvhfrljdyklcs.supabase.co;
     const SUPABASE_ANON_KEY = "sb_publishable_kCj2ULamXmVN2h0UbCHYBg_1sWWZQF0";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Proof of life
+    if (!window.supabase) alert("Supabase library not loaded. Check script src.");
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // UI refs
     const loginCard = document.getElementById("loginCard");
@@ -293,6 +296,7 @@
     const saveBtn = document.getElementById("saveBtn");
     const saveMsg = document.getElementById("saveMsg");
     const copyMsgBtn = document.getElementById("copyMsgBtn");
+    const waFollowBtn = document.getElementById("waFollowBtn");
 
     // Stats
     const stTotal = document.getElementById("stTotal");
@@ -300,31 +304,32 @@
     const stExam = document.getElementById("stExam");
     const stFound = document.getElementById("stFound");
 
-    let selectedRow = null; // store currently opened attempt (full object)
+    let selectedRow = null;
 
     function fmtTime(ts){
-      try{
-        const d = new Date(ts);
-        return d.toLocaleString();
-      }catch(e){ return ts; }
+      try{ return new Date(ts).toLocaleString(); }catch(e){ return ts; }
     }
-
+    function safe(v){ return (v === null || v === undefined || v === "") ? "—" : v; }
     function badge(status){
       const s = status || "NEW";
       return `<span class="badge ${s}">${s}</span>`;
     }
-
-    function safe(v){ return (v === null || v === undefined || v === "") ? "—" : v; }
-
     function computeLoadedStats(rows){
       stTotal.textContent = rows.length;
       stNew.textContent = rows.filter(r => (r.status||"NEW") === "NEW").length;
       stExam.textContent = rows.filter(r => r.stage === "EXAM-KNOCKING").length;
       stFound.textContent = rows.filter(r => r.stage === "FOUNDATION").length;
     }
+    function normalizeBDPhone(p){
+      if(!p) return null;
+      let x = String(p).replace(/\D/g,'');
+      if(x.startsWith("01")) x = "88" + x;
+      if(x.startsWith("8801")) return x;
+      return x;
+    }
 
     async function ensureAuthUI(){
-      const { data } = await supabase.auth.getSession();
+      const { data } = await supabaseClient.auth.getSession();
       const session = data.session;
 
       if (session){
@@ -351,7 +356,9 @@
         const email = document.getElementById("loginEmail").value.trim();
         const password = document.getElementById("loginPass").value;
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!email || !password) throw new Error("Email and password required.");
+
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
         loginMsg.textContent = "Logged in.";
@@ -366,7 +373,7 @@
 
     // Logout
     logoutBtn.addEventListener("click", async () => {
-      await supabase.auth.signOut();
+      await supabaseClient.auth.signOut();
       selectedRow = null;
       emptyDetails.classList.remove("hide");
       details.classList.add("hide");
@@ -382,7 +389,7 @@
     let searchTimer = null;
     fSearch.addEventListener("input", () => {
       clearTimeout(searchTimer);
-      searchTimer = setTimeout(loadAttempts, 400);
+      searchTimer = setTimeout(loadAttempts, 350);
     });
 
     async function loadAttempts(){
@@ -393,25 +400,18 @@
       details.classList.add("hide");
 
       try{
-        let q = supabase.from("ielts_placement_attempts").select("*");
+        let q = supabaseClient.from("ielts_placement_attempts").select("*");
 
-        // Filters
         if (fStatus.value) q = q.eq("status", fStatus.value);
         if (fStage.value) q = q.eq("stage", fStage.value);
 
-        // Search
         const s = fSearch.value.trim();
         if (s){
-          // simple OR search across a few fields
           q = q.or(`phone.ilike.%${s}%,full_name.ilike.%${s}%,email.ilike.%${s}%,id.eq.${s}`);
         }
 
-        // Sort
         const asc = (fSort.value === "created_asc");
-        q = q.order("created_at", { ascending: asc });
-
-        // Limit (avoid loading the universe)
-        q = q.limit(150);
+        q = q.order("created_at", { ascending: asc }).limit(150);
 
         const { data, error } = await q;
         if (error) throw error;
@@ -422,14 +422,13 @@
           listMsg.textContent = "No attempts found for current filters.";
           return;
         }
-
         listMsg.textContent = "";
 
         listBody.innerHTML = data.map(r => `
           <tr class="tr">
             <td>${fmtTime(r.created_at)}</td>
             <td>${badge(r.status)}</td>
-            <td><span class="badge ${r.stage}">${r.stage}</span></td>
+            <td><span class="badge">${safe(r.stage)}</span></td>
             <td>${safe(r.target_score)}</td>
             <td>${safe(r.exam_timeline)}</td>
             <td>${safe(r.phone)}</td>
@@ -437,7 +436,6 @@
           </tr>
         `).join("");
 
-        // Attach open handlers
         listBody.querySelectorAll("button[data-open]").forEach(btn => {
           btn.addEventListener("click", () => {
             const id = btn.getAttribute("data-open");
@@ -483,7 +481,6 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    // Save update
     saveBtn.addEventListener("click", async () => {
       if (!selectedRow) return;
 
@@ -499,18 +496,15 @@
           reviewed_at: new Date().toISOString()
         };
 
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from("ielts_placement_attempts")
           .update(payload)
           .eq("id", selectedRow.id);
 
         if (error) throw error;
 
-        // update local
         selectedRow = { ...selectedRow, ...payload };
-
         saveMsg.textContent = "Saved.";
-        // refresh list to reflect status
         await loadAttempts();
 
       }catch(err){
@@ -521,36 +515,51 @@
       }
     });
 
-    // Copy follow-up message (for WhatsApp paste)
     copyMsgBtn.addEventListener("click", async () => {
       if (!selectedRow) return;
 
       const msg =
 `Hi, apnar placement test review korsi.
 
+Result ID: ${selectedRow.id}
 Stage: ${selectedRow.stage}
 Recommended: ${selectedRow.recommended_path}
 
-Apnar target: ${selectedRow.target_score}
+Target: ${selectedRow.target_score}
 Exam timeline: ${selectedRow.exam_timeline}
 
 Ekta quick 1–2 minute kotha bolle, exact plan confirm kore dite parbo.`;
 
       try{
         await navigator.clipboard.writeText(msg);
-        saveMsg.textContent = "Message copied.";
+        saveMsg.textContent = "Copied.";
       }catch(e){
-        // fallback
-        prompt("Copy this message:", msg);
+        prompt("Copy:", msg);
       }
     });
 
-    // Keep session state
-    supabase.auth.onAuthStateChange((_event, _session) => {
-      ensureAuthUI();
+    waFollowBtn.addEventListener("click", () => {
+      if (!selectedRow) return;
+
+      const to = normalizeBDPhone(selectedRow.phone);
+      if (!to) { alert("No phone number found."); return; }
+
+      const msg =
+`Hi, apnar placement test review korsi.
+
+Result ID: ${selectedRow.id}
+Stage: ${selectedRow.stage}
+Recommended: ${selectedRow.recommended_path}
+
+Target: ${selectedRow.target_score}
+Exam timeline: ${selectedRow.exam_timeline}
+
+Ekta quick 1–2 minute kotha bolle, exact plan confirm kore dite parbo.`;
+
+      window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, "_blank");
     });
 
-    // Init
+    supabaseClient.auth.onAuthStateChange(() => ensureAuthUI());
     ensureAuthUI();
   </script>
 </body>
