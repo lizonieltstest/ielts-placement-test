@@ -7,13 +7,11 @@
   <style>
     :root{
       --bg:#0f2a22;
-      --card:#12352b;
       --text:#e8fff5;
       --muted:rgba(232,255,245,.75);
       --line:rgba(232,255,245,.12);
       --btn:#19b37a;
       --btn2:#0ea56f;
-      --danger:#ffb020;
     }
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:radial-gradient(900px 600px at 50% 0%, #153b30 0%, var(--bg) 55%);color:var(--text);}
     .wrap{max-width:780px;margin:0 auto;padding:18px;}
@@ -36,7 +34,7 @@
     textarea{min-height:120px;resize:vertical}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media(max-width:700px){.grid{grid-template-columns:1fr}}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .chip{
       border:1px solid var(--line);
       background:rgba(0,0,0,.10);
@@ -60,7 +58,6 @@
     .bar > div{height:100%;width:0;background:linear-gradient(90deg,var(--btn),#6ee7b7)}
     .resultBox{border:1px dashed rgba(110,231,183,.45);border-radius:16px;padding:14px}
     .big{font-size:18px;font-weight:900}
-    .warn{color:var(--danger);font-weight:700}
     .hide{display:none}
   </style>
 </head>
@@ -73,14 +70,14 @@
 
     <div class="card">
       <h1>Placement Test (8–10 min)</h1>
-      <div class="bar" aria-label="progress"><div id="pbar"></div></div>
+      <div class="bar"><div id="pbar"></div></div>
       <p class="note" style="margin:10px 0 0">
-        You’ll get an instant stage + recommended path. Final confirmation happens on WhatsApp after your writing is reviewed.
+        Instant preview result + recommended path. Final confirmation happens after your writing is reviewed.
       </p>
     </div>
 
     <form id="ptForm" class="card">
-      <h2>Basic Info (Optional, but helps counselor)</h2>
+      <h2>Basic Info (Optional)</h2>
       <div class="grid">
         <div>
           <label>Full Name</label>
@@ -193,7 +190,7 @@
       <h2 style="margin-top:18px">C) Writing Sample (Required)</h2>
       <label>Write 80–120 words: Why do you want IELTS and what is your plan for the next 2–3 months?</label>
       <textarea id="writing_text" required placeholder="Write here..."></textarea>
-      <div class="row" style="align-items:center;justify-content:space-between;margin-top:8px">
+      <div class="row" style="justify-content:space-between;margin-top:8px">
         <div class="note">Word count: <b id="wc">0</b></div>
         <label style="margin:0;display:flex;gap:8px;align-items:center;color:var(--muted);font-size:12px">
           <input type="checkbox" id="no_translate" checked />
@@ -225,7 +222,7 @@
       <div style="margin-top:18px">
         <button id="submitBtn" class="btn" type="submit">See My Result</button>
         <p class="note" style="margin-top:10px">
-          By submitting, you agree LizOn may contact you to confirm your path.
+          We’ll review your writing and confirm the exact plan via WhatsApp.
         </p>
       </div>
     </form>
@@ -253,19 +250,21 @@
 
   </div>
 
-  <!-- Supabase JS (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- ✅ Supabase UMD build -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
   <script>
     // ============================
-    // CONFIG (REPLACE THESE)
+    // CONFIG (REPLACE THESE 3)
     // ============================
     const SUPABASE_URL = "https://smkvvaasvhfrljdyklcs.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_kCj2ULamXmVN2h0UbCHYBg_1sWWZQF0";
+    const WA_NUMBER = "8801XXXXXXXXX"; // admissions WhatsApp (no +)
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    if (!window.supabase) alert("Supabase library not loaded. Check script src.");
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // UI helpers
+    // UI
     const pbar = document.getElementById("pbar");
     const wcEl = document.getElementById("wc");
     const writing = document.getElementById("writing_text");
@@ -274,8 +273,12 @@
     const form = document.getElementById("ptForm");
     const submitBtn = document.getElementById("submitBtn");
 
-    // Chips selection (max 2)
     const selectedIssues = new Set();
+
+    function wordCount(text){
+      return (text.trim().match(/\S+/g) || []).length;
+    }
+
     issuesWrap.addEventListener("click", (e) => {
       const chip = e.target.closest(".chip");
       if (!chip) return;
@@ -293,16 +296,11 @@
       updateProgress();
     });
 
-    function wordCount(text){
-      return (text.trim().match(/\S+/g) || []).length;
-    }
-
     writing.addEventListener("input", () => {
       wcEl.textContent = wordCount(writing.value);
       updateProgress();
     });
 
-    // Rough progress indicator
     function updateProgress(){
       const requiredIds = [
         "target_score","exam_timeline","taken_before",
@@ -319,14 +317,12 @@
           if (el.value) done++;
         }
       });
-      // small bonus
       if (selectedIssues.size > 0) done += 0.5;
       const pct = Math.min(100, Math.round((done / (requiredIds.length + 0.5)) * 100));
       pbar.style.width = pct + "%";
     }
     updateProgress();
 
-    // Scoring logic (Hybrid: auto + human verify)
     function computeScores(){
       const grammar_score =
         (+document.getElementById("g1").value) +
@@ -340,7 +336,6 @@
       if (exam_timeline === "2–4 weeks") urgency_score = 3;
       else if (exam_timeline === "1–2 months") urgency_score = 2;
       else if (exam_timeline === "2–3 months") urgency_score = 1;
-      else urgency_score = 0;
 
       const target_score = document.getElementById("target_score").value;
       let target_pressure = 0;
@@ -355,31 +350,28 @@
       return {grammar_score, urgency_score, target_pressure, speaking_risk};
     }
 
-    function decideStageAndPath({grammar_score, urgency_score, target_pressure, speaking_risk}, wrote_without_translate, writing_wc, taken_before){
-      // Base stage from fundamentals
+    function decideStageAndPath(scores, wrote_without_translate, writing_wc, taken_before){
       let stage = "CORE";
       let recommended_path = "HOPE";
 
-      if (grammar_score <= 2 || !wrote_without_translate || writing_wc < 60){
+      if (scores.grammar_score <= 2 || !wrote_without_translate || writing_wc < 60){
         stage = "FOUNDATION";
         recommended_path = "ZERO → HOPE";
-      } else if (grammar_score === 3){
+      } else if (scores.grammar_score === 3){
         stage = "CORE";
         recommended_path = "HOPE";
-      } else if (grammar_score >= 4){
+      } else if (scores.grammar_score >= 4){
         stage = "STRATEGY";
         recommended_path = "STEP-UP";
       }
 
-      // Desperate override: exam close + pressure/retake signals
       const retakeSignal = (taken_before !== "No");
-      if (urgency_score >= 2 && (target_pressure >= 1 || retakeSignal)){
+      if (scores.urgency_score >= 2 && (scores.target_pressure >= 1 || retakeSignal)){
         stage = "EXAM-KNOCKING";
         recommended_path = "DESPERATE";
       }
 
-      // Speaking risk can nudge toward earlier structure
-      if (stage === "STRATEGY" && speaking_risk === 2){
+      if (stage === "STRATEGY" && scores.speaking_risk === 2){
         recommended_path = "HOPE → STEP-UP";
       }
 
@@ -387,14 +379,13 @@
         stage === "FOUNDATION" ? "Base e crack ache. Structure fix na kore shortcut dile score stable hobe na."
       : stage === "CORE" ? "Core skill gulo stable korte hobe—especially writing structure + reading/listening control."
       : stage === "STRATEGY" ? "You’re close. Now question-type strategy + time control matters."
-      : "Exam close. Preparation thakleo control na thakle score leak hoy. Pressure-handling + evaluation needed.";
+      : "Exam close. Pressure handling + evaluation needed.";
 
       return {stage, recommended_path, result_summary};
     }
 
     async function insertAttempt(payload){
-      // Insert and return ID
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from("ielts_placement_attempts")
         .insert(payload)
         .select("id")
@@ -438,33 +429,28 @@
         const payload = {
           full_name, phone, email, city_country,
           target_score, exam_timeline, taken_ielts_before, last_overall_band,
-
           grammar_score: scores.grammar_score,
           urgency_score: scores.urgency_score,
           target_pressure: scores.target_pressure,
           speaking_risk: scores.speaking_risk,
-
           speaking_comfort,
           speaking_issues,
-
           writing_text,
           wrote_without_translate,
           writing_word_count,
-
           stage: decision.stage,
           recommended_path: decision.recommended_path,
-          result_summary: decision.result_summary
+          result_summary: decision.result_summary,
+          status: "NEW"
         };
 
         const id = await insertAttempt(payload);
 
-        // Render result
         document.getElementById("stageLine").textContent = `Stage: ${decision.stage}`;
         document.getElementById("summaryLine").textContent = decision.result_summary;
         document.getElementById("pathLine").textContent = decision.recommended_path;
         document.getElementById("rid").textContent = id;
 
-        // WhatsApp prefill
         const msg =
           `Hi LizOn, ami placement test diyechi.\n` +
           `Result ID: ${id}\n` +
@@ -473,17 +459,14 @@
           `Target: ${target_score}, Exam: ${exam_timeline}\n` +
           `Please amar writing review kore final confirm korun.`;
 
-        // Put your helpline number here (international format)
-        const WA_NUMBER = "8801XXXXXXXXX";
-        const waLink = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
-        document.getElementById("waBtn").href = waLink;
+        document.getElementById("waBtn").href =
+          `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
 
-        // show result
         resultCard.classList.remove("hide");
         resultCard.scrollIntoView({behavior:"smooth", block:"start"});
 
       } catch (err) {
-        alert("Submission failed. Please check config / internet / Supabase policies.\n\n" + (err?.message || err));
+        alert("Submission failed:\n\n" + (err?.message || err));
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "See My Result";
